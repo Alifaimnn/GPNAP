@@ -1,12 +1,71 @@
 const express = require('express')
 const app = express()
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 4000;
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 app.use(express.json())
 
 //user registration
+app.post('/user', async (req,res) => {
+  //check if username already exist
+  //insertOne registration data to mongo
+  const hash = bcrypt.hashSync(req.body.password, 15);
+
+  let result = await client.db("user").collection("userdetail").insertOne(
+    {
+      username : req.body.username,
+      password : hash,
+      name : req.body.name,
+      email : req.body.email
+    }
+  )
+  res.send(result)
+})
+
+//user login 
+app.post('/login', async (req,res) => {
+  // step #1: req.body.username ??
+  if (req.body.username != null && req.body.password != null) {
+    let result = await client.db("user").collection("userdetail").findOne({
+      username: req.body.username
+    })
+
+    if (result) {
+      // step #2: if user exist, check if password is correct
+      if (bcrypt.compareSync(req.body.password, result.password) == true) {
+        // password is correct
+        var token = jwt.sign(
+          { _id: result._id, username: result.username, name: result.name },
+          'hurufasepuluhkali'
+        );
+        res.send(token)
+      } else {
+        // password is incorrect
+        res.status(401).send('WRONG PASSWORD! TRY AGAIN')
+      }
+
+    } else {
+      // step #3: if user not found
+      res.status(401).send("USERNAME NOT FOUND")
+    }
+  } else {
+    res.status(400).send("MISSING USERNAME OR PASSWORD")
+  }
+})
+
+//serve the html form
+app.get('/mapselection',(req,res) => {
+  res.sendFile(__dirname + '/map-selection.html');
+});
+
+//Handle map selection
+app.post('/choose-map',(req,res) => {
+  const selectedMap = req.body.selectedMap;
+  //get selected map from the form
+  //process the selected map 
+  res.send(`You chose ${selectedMap}. Let's play!`);
+});
 
 app.listen(port, () => {
    console.log(`Example app listening on port ${port}`)
@@ -25,6 +84,23 @@ const client = new MongoClient(uri, {
   }
 });
 
+function verifyToken(req, res, next) {
+  const authHeader = req.headers.authorization
+  const token = authHeader && authHeader.split(' ')[1]
+
+  if (token == null) return res.sendStatus(401)
+
+  jwt.verify(token, "hurufasepuluhkali", (err, decoded) => {
+    console.log(err)
+
+    if (err) return res.sendStatus(403)
+
+    req.identify = decoded
+
+    next()
+  })
+}
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -34,7 +110,7 @@ async function run() {
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
-    await client.close();
+    //await client.close();
   }
 }
 run().catch(console.dir);

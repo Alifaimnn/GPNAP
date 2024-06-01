@@ -5,7 +5,9 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 
+
 app.use(express.json())
+
 
 //user registration
 app.post('/user', async (req,res) => {
@@ -55,9 +57,11 @@ app.post('/login', async (req,res) => {
   }
 })
 
+
 // get user profile
 app.get('/user/:id', verifyToken, async (req, res) => {
-  if (req.identify._id != req.params.id) {
+  
+  if (req.identity._id != req.params.id) {
     res.status(401).send('Unauthorized Access')
   } else {
     let result = await client.db("user").collection("userdetail").findOne({
@@ -67,9 +71,11 @@ app.get('/user/:id', verifyToken, async (req, res) => {
   }
 })
 
+
+
 // update user account
 app.patch('/user/:id', verifyToken, async (req, res) => {
-  if (req.identify._id != req.params.id) {
+  if (req.identity._id != req.params.id) {
     res.send('Unauthorized')
   } else {
     let result = await client.db("user").collection("userdetail").updateOne(
@@ -93,8 +99,8 @@ app.delete('/user/:id', verifyToken, async (req, res) => {
       _id: new ObjectId(req.params.id)
     }
   )
-  res.send(result)
-})
+  res.send(result);
+});
 
 app.post('/buy', async (req, res) => {
   const token = req.headers.authorization.split(" ")[1]
@@ -105,29 +111,29 @@ app.post('/buy', async (req, res) => {
 
 
 
-//serve the html form
-app.get('/mapselection',(req,res) => {
+app.post('/choose-map',(req,res) => {
+  
+  const selectedMap = req.body.selectedMap;
+  const userid = req.identify._id; //it will replace with actual game ID generation logic
+  
+  //construct path to html file based on map name
+  const mapHtmlpath = `/map-selection.html`;
+
+  //check if map is exist or not
+  if (mapHtmlPathExists(mapHtmlpath)) {
+    res.send(`
+    You choose ${selectedMap}.Lets start Play!
+    User ID : ${userid}
+    Map: <a href = "${mapHtmlpath}">${selectedMap}</a>`);
+  
+  } else {
+    res.status(404).send(`Map "${selectedMap}" not found.`);
+  }
   res.sendFile(__dirname + '/map-selection.html');
 });
 
-//Handle map selection
-app.post('/choose-map',(req,res) => {
-  const selectedMap = req.body.selectedMap;
-  //get selected map from the form
-  //process the selected map 
-  res.send(`You chose ${selectedMap}. Let's play!`);
-});
 
-//define the route
-app.get('/start-game/:mapName/:gameId',(req,res) => {
-  const {mapName,gameId} = req.params;
 
-  //simulate
-  const gameMessage = 'Enter your game id ${gameId} . Welcome to the map ${mapName} map!';
-
-  //send response 
-  res.send(gameMessage);
-});
 app.listen(port, () => {
    console.log(`Example app listening on port ${port}`)
 })
@@ -143,7 +149,7 @@ const client = new MongoClient(uri, {
     strict: true,
     deprecationErrors: true,
   }
-});
+})
 
 function verifyToken(req, res, next) {
   const authHeader = req.headers.authorization
@@ -156,7 +162,7 @@ function verifyToken(req, res, next) {
 
     if (err) return res.sendStatus(403)
 
-    req.identify = decoded
+    req.identity = decoded
 
     next()
   })

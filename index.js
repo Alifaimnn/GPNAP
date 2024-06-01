@@ -4,6 +4,7 @@ const port = process.env.PORT || 4000;
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
+
 app.use(express.json())
 
 //user registration
@@ -53,6 +54,56 @@ app.post('/login', async (req,res) => {
     res.status(400).send("MISSING USERNAME OR PASSWORD")
   }
 })
+
+// get user profile
+app.get('/user/:id', verifyToken, async (req, res) => {
+  if (req.identify._id != req.params.id) {
+    res.status(401).send('Unauthorized Access')
+  } else {
+    let result = await client.db("user").collection("userdetail").findOne({
+      _id: new ObjectId(req.params.id)
+    })
+    res.send(result)
+  }
+})
+
+// update user account
+app.patch('/user/:id', verifyToken, async (req, res) => {
+  if (req.identify._id != req.params.id) {
+    res.send('Unauthorized')
+  } else {
+    let result = await client.db("user").collection("userdetail").updateOne(
+      {
+        _id: new ObjectId(req.params.id)
+      },
+      {
+        $set: {
+          name: req.body.name
+        }
+      }
+    )
+    res.send(result)
+  }
+})
+
+// delete user account
+app.delete('/user/:id', verifyToken, async (req, res) => {
+  let result = await client.db("user").collection("userdetail").deleteOne(
+    {
+      _id: new ObjectId(req.params.id)
+    }
+  )
+  res.send(result)
+})
+
+app.post('/buy', async (req, res) => {
+  const token = req.headers.authorization.split(" ")[1]
+
+  var decoded = jwt.verify(token, 'mysupersecretpasskey');
+  console.log(decoded)
+})
+
+
 
 //serve the html form
 app.get('/mapselection',(req,res) => {

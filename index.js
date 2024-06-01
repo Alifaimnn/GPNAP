@@ -118,6 +118,16 @@ app.post('/choose-map',(req,res) => {
   res.send(`You chose ${selectedMap}. Let's play!`);
 });
 
+//define the route
+app.get('/start-game/:mapName/:gameId',(req,res) => {
+  const {mapName,gameId} = req.params;
+
+  //simulate
+  const gameMessage = 'Enter your game id ${gameId} . Welcome to the map ${mapName} map!';
+
+  //send response 
+  res.send(gameMessage);
+});
 app.listen(port, () => {
    console.log(`Example app listening on port ${port}`)
 })

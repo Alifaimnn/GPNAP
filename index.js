@@ -113,18 +113,30 @@ app.post('/buy', async (req, res) => {
 
 app.post('/choose-map',(req,res) => {
   
+
   const selectedMap = req.body.selectedMap;
-  const userid = req.identify._id; //it will replace with actual game ID generation logic
+  console.log(req.identity)
   
+  const fs = require('fs');
+
+  function mapJsonPathExists(mapPath) {
+    try {
+      // Check if the file exists synchronously
+      fs.accessSync(mapPath, fs.constants.F_OK);
+      return true; // File exists
+    } catch (err) {
+      return false; // File does not exist
+  }
+}
   //construct path to html file based on map name
-  const mapHtmlpath = `/map-selection.html`;
+  const mapJsonpath = `./${selectedMap}.json`;
 
   //check if map is exist or not
-  if (mapHtmlPathExists(mapHtmlpath)) {
+  if (mapJsonPathExists(mapJsonpath)) {
     res.send(`
     You choose ${selectedMap}.Lets start Play!
-    User ID : ${userid}
-    Map: <a href = "${mapHtmlpath}">${selectedMap}</a>`);
+    
+    Map: <a href = "${mapJsonpath}">${selectedMap}</a>`);
   
   } else {
     res.status(404).send(`Map "${selectedMap}" not found.`);

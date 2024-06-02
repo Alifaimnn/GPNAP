@@ -111,7 +111,7 @@ app.post('/buy', async (req, res) => {
 
 
 
-app.post('/choose-map',verifyToken,async (req,res) => {
+app.post('/choose-map', (req,res) => {
   
 
   const selectedMap = req.body.selectedMap;

@@ -111,7 +111,7 @@ app.post('/buy', async (req, res) => {
 
 
 
-app.post('/choose-map',(req,res) => {
+app.post('/choose-map',verifyToken,async (req,res) => {
   
 
   const selectedMap = req.body.selectedMap;
@@ -130,20 +130,22 @@ app.post('/choose-map',(req,res) => {
 }
   //construct path to html file based on map name
   const mapJsonpath = `./${selectedMap}.json`;
+  
 
   //check if map is exist or not
   if (mapJsonPathExists(mapJsonpath)) {
-    res.send(`
-    You choose ${selectedMap}.Lets start Play!
-    
-    Map: <a href = "${mapJsonpath}">${selectedMap}</a>`);
+
+    const mapData = require(mapJsonpath);
+  
+    const room1Message = mapData.map.room1.message;
+
+    res.send(`You choose ${selectedMap}.Lets start Play!\n\nRoom 1 Message:\n${room1Message}`);
+
   
   } else {
     res.status(404).send(`Map "${selectedMap}" not found.`);
   }
-  res.sendFile(__dirname + '/map-selection.html');
 });
-
 
 
 app.listen(port, () => {

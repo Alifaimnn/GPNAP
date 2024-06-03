@@ -1,5 +1,5 @@
 {
-    "playerLoc": "room10",
+    "playerLoc": "room1",
     "monsterLoc": "room7",
     "fireballs": 2,
     "gameOver": false,

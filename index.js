@@ -109,36 +109,31 @@ app.post('/buy', async (req, res) => {
   console.log(decoded)
 })
 
-
-let selectedMap = '';
-let playerPosition = '';
 app.post('/choose-map', (req,res) => {
-  
-
   const selectedMap = req.body.selectedMap;
   console.log(req.identity)
   
   const fs = require('fs');
 
-  function mapJsonPathExists(mapPath) {
-    try {
-      // Check if the file exists synchronously
-      fs.accessSync(mapPath, fs.constants.F_OK);
-      return true; // File exists
-    } catch (err) {
-      return false; // File does not exist
-  }
+  
+function mapJsonPathExists(mapPath) {
+  try {
+    // Check if the file exists synchronously
+    fs.accessSync(mapPath, fs.constants.F_OK);
+    return true; // File exists
+  } catch (err) {
+    return false; // File does not exist
 }
+}
+
   //construct path to html file based on map name
   const mapJsonpath = `./${selectedMap}.json`;
   playerPosition = mapJsonpath.playerLoc;
-  
-
   //check if map is exist or not
   if (mapJsonPathExists(mapJsonpath)) {
 
     const mapData = require(mapJsonpath);
-    playerPosition = mapData.playerLoc;
+    playerPosition = mapData.playerLoc;//set initial player position
     const room1Message = mapData.map.room1.message;
 
     res.send(`You choose ${selectedMap}.Lets start Play!\n\nRoom 1 Message:\n${room1Message}`); 
@@ -154,11 +149,12 @@ app.patch('/move',(req,res) => {
   const direction =req.body.direction;
 
   //get current room data based on players position
-  const mapData =require(`./${selectedMap}.json`);
+  const mapData =require(`./${selectedMap}`);
   const currentRoom =mapData.map[playerPosition];
+ 
 
   //determine the next room based on the direction
-  let nextRoom =currentRoom[direction];
+  const nextRoom =currentRoom[direction];
   if(!nextRoom) {
     res.status(400).send(`Invalid direction: ${direction}`);
     return;

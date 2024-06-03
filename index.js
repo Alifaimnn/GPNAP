@@ -110,7 +110,8 @@ app.post('/buy', async (req, res) => {
 })
 
 
-
+let selectedMap = '';
+let playerPosition = '';
 app.post('/choose-map', (req,res) => {
   
 
@@ -130,16 +131,17 @@ app.post('/choose-map', (req,res) => {
 }
   //construct path to html file based on map name
   const mapJsonpath = `./${selectedMap}.json`;
+  playerPosition = mapJsonpath.playerLoc;
   
 
   //check if map is exist or not
   if (mapJsonPathExists(mapJsonpath)) {
 
     const mapData = require(mapJsonpath);
-  
+    playerPosition = mapData.playerLoc;
     const room1Message = mapData.map.room1.message;
 
-    res.send(`You choose ${selectedMap}.Lets start Play!\n\nRoom 1 Message:\n${room1Message}`);
+    res.send(`You choose ${selectedMap}.Lets start Play!\n\nRoom 1 Message:\n${room1Message}`); 
 
   
   } else {
@@ -147,6 +149,27 @@ app.post('/choose-map', (req,res) => {
   }
 });
 
+app.patch('/move',(req,res) => {
+  //assume received the direction like north south from user input
+  const direction =req.body.direction;
+
+  //get current room data based on players position
+  const mapData =require(`./${selectedMap}.json`);
+  const currentRoom =mapData.map[playerPosition];
+
+  //determine the next room based on the direction
+  let nextRoom =currentRoom[direction];
+  if(!nextRoom) {
+    res.status(400).send(`Invalid direction: ${direction}`);
+    return;
+  }
+
+  const nextRoomMessage =mapData.map[nextRoom].message;
+  //update the player position
+  playerPosition =nextRoom;
+
+  res.send(`You moved ${direction}. ${nextRoomMessage}`);
+});
 
 app.listen(port, () => {
    console.log(`Example app listening on port ${port}`)

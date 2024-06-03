@@ -1,7 +1,6 @@
 {
     "playerLoc": "room1",
     "monsterLoc": "room7",
-    "fireballs": 2,
     "gameOver": false,
     "map": {
     "room1": {
@@ -66,7 +65,7 @@
       "east": "room14",
       "south": "room9",
       "fireballScrolls": 1,
-      "message": "You hear nothing. Your options are to move east or south. You found a fireball scroll!."
+      "message": "You hear nothing. Your options are to move east or south."
     },
     "room14": {
       "west": "room13",
@@ -83,7 +82,7 @@
     "room16": {
       "south": "room12",
       "fireballScrolls": 1,
-      "message": "You hear nothing. Your options are to move south. You found a fireball scroll!"
+      "message": "You hear nothing. Your options are to move south."
     }
   }
 }

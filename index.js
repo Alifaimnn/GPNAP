@@ -131,7 +131,7 @@ app.post('/choose-map', (req, res) => {
     }
   }
 
-  const mapJsonPath = ./${selectedMapName}.json;
+  const mapJsonPath = `./${selectedMapName}.json`;
 
   if (mapJsonPathExists(mapJsonPath)) {
     const mapData = require(mapJsonPath);
@@ -139,9 +139,9 @@ app.post('/choose-map', (req, res) => {
     playerPosition = mapData.playerLoc; // Set initial player position
     const room1Message = mapData.map.room1.message;
 
-    res.send(You choose ${selectedMapName}. Let's start playing!\n\nRoom 1 Message:\n${room1Message});
+    res.send(`You choose ${selectedMapName}. Let's start playing!\n\nRoom 1 Message:\n${room1Message}`);
   } else {
-    res.status(404).send(Map "${selectedMapName}" not found.);
+    res.status(404).send(`Map "${selectedMapName}" not found.`);
   }
 });
 
@@ -153,23 +153,23 @@ app.patch('/move', (req, res) => {
     return;
   }
 
-  const mapData = require(./${selectedMap}.json);
+  const mapData = require(`./${selectedMap}.json`);
   const currentRoom = mapData.map[playerPosition];
 
   const nextRoom = currentRoom[direction];
   if (!nextRoom) {
-    res.status(400).send(Invalid direction: ${direction});
+    res.status(400).send(`Invalid direction: ${direction}`);
     return;
   }
 
   const nextRoomMessage = mapData.map[nextRoom].message;
   playerPosition = nextRoom;
 
-  res.send(You moved ${direction}. ${nextRoomMessage});
+  res.send(`You moved ${direction}. ${nextRoomMessage}`);
 });
 
 app.listen(port, () => {
-  console.log(Example app listening on port ${port});
+  console.log(`Example app listening on port ${port}`);
 });
 
 async function run() {

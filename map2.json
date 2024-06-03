@@ -71,7 +71,7 @@
       "west": "room13",
       "south": "room10",
       "east": "room15",
-      "message": "You hear nothing. Your options are to move west, south or east."
+      "message": "YOU WIN!"
     },
     "room15": {
       "west": "room14",

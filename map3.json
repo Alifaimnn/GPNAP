@@ -40,7 +40,7 @@
       },
       "room9": {
         "south": "room5",
-        "message": "You hear nothing. Your options are to move south."
+        "message": "YOU WIN!"
       },
       "room10": {
         "south": "room6",

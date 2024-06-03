@@ -41,8 +41,7 @@
       },
       "room8": {
         "south": "room4",
-        "fireballScrolls": 1,
-        "message": "You hear nothing. Your options are to move south."
+        "message": "YOU WIN !"
       },
       "room9": {
         "east": "room10",
@@ -66,7 +65,6 @@
       },
       "room13": {
         "east": "room14",
-        "fireballScrolls": 1,
         "message": "You hear a roar off in the distance. Your options are to move east."
       },
       "room14": {

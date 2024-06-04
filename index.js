@@ -89,22 +89,6 @@ app.get('/user/:id', verifyToken, async (req, res) => {
   }
 });
 
-// Update user account
-app.patch('/user/:id', verifyToken, async (req, res) => {
-  if (req.identity._id != req.params.id) {
-    res.send('Unauthorized');
-  } else {
-    let result = await client.db("user").collection("userdetail").updateOne({
-      _id: new ObjectId(req.params.id)
-    }, {
-      $set: {
-        name: req.body.name,
-        password : hash
-      }
-    });
-    res.send(result);
-  }
-});
 
 // Delete user account
 app.delete('/user/:id', verifyToken, async (req, res) => {

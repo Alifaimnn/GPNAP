@@ -46,11 +46,7 @@ app.post('/user', async (req, res) => {
     }
 
     // Check if username already exists
-    const existingUser = await client
-      .db("user")
-      .collection("userdetail")
-      .findOne({ username });
-
+    const existingUser = await client.db("user").collection("userdetail").findOne({ username });
     if (existingUser) {
       return res
         .status(400)
@@ -61,42 +57,59 @@ app.post('/user', async (req, res) => {
     const hash = bcrypt.hashSync(password, 15);
 
     // Insert the new user
-    const result = await client.db("user").collection("userdetail").insertOne({
+    await client.db("user").collection("userdetail").insertOne({
       username,
       password: hash,
       name,
       email,
     });
 
-    res.status(201).send(result);
+    res.status(201).send("User registered successfully.");
   } catch (error) {
-    console.error("Error during registration:", error);
-    res.status(500).send("Internal server error");
+    if (error.code === 11000) {
+      // Handle duplicate key error
+      res.status(400).send("Username already exists. Please choose a different username.");
+    } else {
+      console.error("Error during registration:", error);
+      res.status(500).send("Internal server error.");
+    }
   }
 });
 
 // User login
 app.post('/login', async (req, res) => {
-  if (req.body.username != null && req.body.password != null) {
-    let result = await client.db("user").collection("userdetail").findOne({
-      username: req.body.username,
-    });
+  try {
+    const { username, password } = req.body;
 
-    if (result) {
-      if (bcrypt.compareSync(req.body.password, result.password) == true) {
-        var token = jwt.sign(
-          { _id: result._id, username: result.username, name: result.name },
-          'hurufasepuluhkali'
-        );
-        res.send(token);
-      } else {
-        res.status(401).send('WRONG PASSWORD! TRY AGAIN');
-      }
-    } else {
-      res.status(401).send("USERNAME NOT FOUND");
+    if (!username || !password) {
+      return res.status(400).send("Missing username or password.");
     }
-  } else {
-    res.status(400).send("MISSING USERNAME OR PASSWORD");
+
+    const user = await client.db("user").collection("userdetail").findOne({ username });
+
+    if (!user) {
+      return res.status(401).send("Username not found.");
+    }
+
+    const passwordMatch = bcrypt.compareSync(password, user.password);
+
+    if (!passwordMatch) {
+      return res.status(401).send("Wrong password! Try again.");
+    }
+
+    const token = jwt.sign(
+      { _id: user._id, username: user.username, name: user.name },
+      'hurufasepuluhkali'
+    );
+
+    // Respond with both user ID and token
+    res.status(200).send({
+      id: user._id.toString(),  // Ensure the ID is converted to string if it's an ObjectId
+      token: token,
+    });
+  } catch (error) {
+    console.error("Error during login:", error);
+    res.status(500).send("Internal server error.");
   }
 });
 

@@ -15,7 +15,7 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 
 let selectedMap = null;
@@ -29,34 +29,57 @@ function verifyToken(req, res, next) {
   if (token == null) return res.sendStatus(401);
 
   jwt.verify(token, "hurufasepuluhkali", (err, decoded) => {
-    console.log(err);
-
     if (err) return res.sendStatus(403);
-
     req.identity = decoded;
-
     next();
   });
 }
 
-// User registration
+// User registration with duplicate username prevention
 app.post('/user', async (req, res) => {
-  const hash = bcrypt.hashSync(req.body.password, 15);
+  try {
+    const { username, password, name, email } = req.body;
 
-  let result = await client.db("user").collection("userdetail").insertOne({
-    username: req.body.username,
-    password: hash,
-    name: req.body.name,
-    email: req.body.email
-  });
-  res.send(result);
+    // Ensure all required fields are provided
+    if (!username || !password || !name || !email) {
+      return res.status(400).send("All fields are required.");
+    }
+
+    // Check if username already exists
+    const existingUser = await client
+      .db("user")
+      .collection("userdetail")
+      .findOne({ username });
+
+    if (existingUser) {
+      return res
+        .status(400)
+        .send("Username already exists. Please choose a different username.");
+    }
+
+    // Hash the password
+    const hash = bcrypt.hashSync(password, 15);
+
+    // Insert the new user
+    const result = await client.db("user").collection("userdetail").insertOne({
+      username,
+      password: hash,
+      name,
+      email,
+    });
+
+    res.status(201).send(result);
+  } catch (error) {
+    console.error("Error during registration:", error);
+    res.status(500).send("Internal server error");
+  }
 });
 
 // User login
 app.post('/login', async (req, res) => {
   if (req.body.username != null && req.body.password != null) {
     let result = await client.db("user").collection("userdetail").findOne({
-      username: req.body.username
+      username: req.body.username,
     });
 
     if (result) {
@@ -83,27 +106,28 @@ app.get('/user/:id', verifyToken, async (req, res) => {
     res.status(401).send('Unauthorized Access');
   } else {
     let result = await client.db("user").collection("userdetail").findOne({
-      _id: new ObjectId(req.params.id)
+      _id: new ObjectId(req.params.id),
     });
     res.send(result);
   }
 });
 
-
 // Delete user account
 app.delete('/user/:id', verifyToken, async (req, res) => {
   let result = await client.db("user").collection("userdetail").deleteOne({
-    _id: new ObjectId(req.params.id)
+    _id: new ObjectId(req.params.id),
   });
   res.send(result);
 });
 
+// Buy endpoint
 app.post('/buy', async (req, res) => {
   const token = req.headers.authorization.split(" ")[1];
   var decoded = jwt.verify(token, 'mysupersecretpasskey');
   console.log(decoded);
 });
 
+// Choose map
 app.post('/choose-map', (req, res) => {
   const selectedMapName = req.body.selectedMap;
 
@@ -130,6 +154,7 @@ app.post('/choose-map', (req, res) => {
   }
 });
 
+// Move player
 app.patch('/move', (req, res) => {
   const direction = req.body.direction;
 
@@ -153,10 +178,12 @@ app.patch('/move', (req, res) => {
   res.send(`You moved ${direction}. ${nextRoomMessage}`);
 });
 
+// Start server
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
 
+// Connect to MongoDB
 async function run() {
   try {
     await client.connect();

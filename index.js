@@ -29,12 +29,9 @@ function verifyToken(req, res, next) {
   if (token == null) return res.sendStatus(401);
 
   jwt.verify(token, "hurufasepuluhkali", (err, decoded) => {
-    console.log(err);
-
     if (err) return res.sendStatus(403);
 
-    req.identity = decoded;
-
+    req.identity = decoded; // Attach decoded user data to the request
     next();
   });
 }
@@ -102,21 +99,8 @@ app.get('/user/:id', verifyToken, async (req, res) => {
   }
 });
 
-// Delete user account
-app.delete('/user/:id', verifyToken, async (req, res) => {
-  let result = await client.db("user").collection("userdetail").deleteOne({
-    _id: new ObjectId(req.params.id)
-  });
-  res.send(result);
-});
-
-app.post('/buy', async (req, res) => {
-  const token = req.headers.authorization.split(" ")[1];
-  var decoded = jwt.verify(token, 'mysupersecretpasskey');
-  console.log(decoded);
-});
-
-app.post('/choose-map', (req, res) => {
+// Choose map - Authenticated route
+app.post('/choose-map', verifyToken, (req, res) => {
   const selectedMapName = req.body.selectedMap;
 
   function mapJsonPathExists(mapPath) {
@@ -142,7 +126,8 @@ app.post('/choose-map', (req, res) => {
   }
 });
 
-app.patch('/move', (req, res) => {
+// Move - Authenticated route
+app.patch('/move', verifyToken, (req, res) => {
   const direction = req.body.direction;
 
   if (!selectedMap) {

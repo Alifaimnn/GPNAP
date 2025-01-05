@@ -29,38 +29,51 @@ function verifyToken(req, res, next) {
   if (token == null) return res.sendStatus(401);
 
   jwt.verify(token, "hurufasepuluhkali", (err, decoded) => {
-    console.log(err);
-
     if (err) return res.sendStatus(403);
 
     req.identity = decoded;
-
     next();
   });
 }
 
 // User registration
 app.post('/user', async (req, res) => {
-  const hash = bcrypt.hashSync(req.body.password, 15);
+  try {
+    // Check if the username already exists
+    const existingUser = await client.db("user").collection("userdetail").findOne({
+      username: req.body.username,
+    });
 
-  let result = await client.db("user").collection("userdetail").insertOne({
-    username: req.body.username,
-    password: hash,
-    name: req.body.name,
-    email: req.body.email
-  });
-  res.send(result);
+    if (existingUser) {
+      return res.status(400).send("Username already exists. Please choose a different username.");
+    }
+
+    // Hash the password and store the user
+    const hash = bcrypt.hashSync(req.body.password, 15);
+
+    let result = await client.db("user").collection("userdetail").insertOne({
+      username: req.body.username,
+      password: hash,
+      name: req.body.name,
+      email: req.body.email,
+    });
+
+    res.send(result);
+  } catch (error) {
+    console.error("Error during registration:", error);
+    res.status(500).send("An error occurred while registering the user.");
+  }
 });
 
 // User login
 app.post('/login', async (req, res) => {
   if (req.body.username != null && req.body.password != null) {
     let result = await client.db("user").collection("userdetail").findOne({
-      username: req.body.username
+      username: req.body.username,
     });
 
     if (result) {
-      if (bcrypt.compareSync(req.body.password, result.password) == true) {
+      if (bcrypt.compareSync(req.body.password, result.password)) {
         var token = jwt.sign(
           { _id: result._id, username: result.username, name: result.name },
           'hurufasepuluhkali'
@@ -83,17 +96,16 @@ app.get('/user/:id', verifyToken, async (req, res) => {
     res.status(401).send('Unauthorized Access');
   } else {
     let result = await client.db("user").collection("userdetail").findOne({
-      _id: new ObjectId(req.params.id)
+      _id: new ObjectId(req.params.id),
     });
     res.send(result);
   }
 });
 
-
 // Delete user account
 app.delete('/user/:id', verifyToken, async (req, res) => {
   let result = await client.db("user").collection("userdetail").deleteOne({
-    _id: new ObjectId(req.params.id)
+    _id: new ObjectId(req.params.id),
   });
   res.send(result);
 });
@@ -162,9 +174,11 @@ async function run() {
     await client.connect();
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
+
+    // Create a unique index on the username field
+    await client.db("user").collection("userdetail").createIndex({ username: 1 }, { unique: true });
+  } catch (error) {
+    console.error("Error during startup:", error);
   }
 }
 run().catch(console.dir);

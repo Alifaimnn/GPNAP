@@ -91,7 +91,13 @@ app.post('/login', async (req, res) => {
       return res.status(401).send("Username not found.");
     }
 
+    // Log entered password and stored hash for debugging
+    console.log("Entered Password:", password);
+    console.log("Stored Hash:", user.password);
+
     const passwordMatch = bcrypt.compareSync(password, user.password);
+
+    console.log("Password Match:", passwordMatch); // Log the result
 
     if (!passwordMatch) {
       return res.status(401).send("Wrong password! Try again.");
@@ -135,7 +141,7 @@ app.delete('/user/:id', verifyToken, async (req, res) => {
 // Buy endpoint
 app.post('/buy', async (req, res) => {
   const token = req.headers.authorization.split(" ")[1];
-  var decoded = jwt.verify(token, 'mysupersecretpasskey');
+  var decoded = jwt.verify(token, 'hurufasepuluhkali'); // Match JWT secret
   console.log(decoded);
 });
 

@@ -15,7 +15,7 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 
 let selectedMap = null;
@@ -30,63 +30,85 @@ function verifyToken(req, res, next) {
 
   jwt.verify(token, "hurufasepuluhkali", (err, decoded) => {
     if (err) return res.sendStatus(403);
-
     req.identity = decoded;
     next();
   });
 }
 
-// User registration
+// User registration with duplicate username prevention
 app.post('/user', async (req, res) => {
   try {
-    // Check if the username already exists
-    const existingUser = await client.db("user").collection("userdetail").findOne({
-      username: req.body.username,
-    });
+    const { username, password, name, email } = req.body;
 
-    if (existingUser) {
-      return res.status(400).send("Username already exists. Please choose a different username.");
+    // Ensure all required fields are provided
+    if (!username || !password || !name || !email) {
+      return res.status(400).send("All fields are required.");
     }
 
-    // Hash the password and store the user
-    const hash = bcrypt.hashSync(req.body.password, 15);
+    // Check if username already exists
+    const existingUser = await client.db("user").collection("userdetail").findOne({ username });
+    if (existingUser) {
+      return res
+        .status(400)
+        .send("Username already exists. Please choose a different username.");
+    }
 
-    let result = await client.db("user").collection("userdetail").insertOne({
-      username: req.body.username,
+    // Hash the password
+    const hash = bcrypt.hashSync(password, 15);
+
+    // Insert the new user
+    await client.db("user").collection("userdetail").insertOne({
+      username,
       password: hash,
-      name: req.body.name,
-      email: req.body.email,
+      name,
+      email,
     });
 
-    res.send(result);
+    res.status(201).send("User registered successfully.");
   } catch (error) {
-    console.error("Error during registration:", error);
-    res.status(500).send("An error occurred while registering the user.");
+    if (error.code === 11000) {
+      // Handle duplicate key error
+      res.status(400).send("Username already exists. Please choose a different username.");
+    } else {
+      console.error("Error during registration:", error);
+      res.status(500).send("Internal server error.");
+    }
   }
 });
 
 // User login
 app.post('/login', async (req, res) => {
-  if (req.body.username != null && req.body.password != null) {
-    let result = await client.db("user").collection("userdetail").findOne({
-      username: req.body.username,
-    });
+  try {
+    const { username, password } = req.body;
 
-    if (result) {
-      if (bcrypt.compareSync(req.body.password, result.password)) {
-        var token = jwt.sign(
-          { _id: result._id, username: result.username, name: result.name },
-          'hurufasepuluhkali'
-        );
-        res.send(token);
-      } else {
-        res.status(401).send('WRONG PASSWORD! TRY AGAIN');
-      }
-    } else {
-      res.status(401).send("USERNAME NOT FOUND");
+    if (!username || !password) {
+      return res.status(400).send("Missing username or password.");
     }
-  } else {
-    res.status(400).send("MISSING USERNAME OR PASSWORD");
+
+    const user = await client.db("user").collection("userdetail").findOne({ username });
+
+    if (!user) {
+      return res.status(401).send("Username not found.");
+    }
+
+    const passwordMatch = bcrypt.compareSync(password, user.password);
+
+    if (!passwordMatch) {
+      return res.status(401).send("Wrong password! Try again.");
+    }
+
+    const token = jwt.sign(
+      { _id: user._id, username: user.username, name: user.name },
+      'hurufasepuluhkali'
+    );
+
+    res.status(200).send({
+      id: user._id,
+      token: token,
+    });
+  } catch (error) {
+    console.error("Error during login:", error);
+    res.status(500).send("Internal server error.");
   }
 });
 
@@ -110,12 +132,14 @@ app.delete('/user/:id', verifyToken, async (req, res) => {
   res.send(result);
 });
 
+// Buy endpoint
 app.post('/buy', async (req, res) => {
   const token = req.headers.authorization.split(" ")[1];
   var decoded = jwt.verify(token, 'mysupersecretpasskey');
   console.log(decoded);
 });
 
+// Choose map
 app.post('/choose-map', (req, res) => {
   const selectedMapName = req.body.selectedMap;
 
@@ -142,6 +166,7 @@ app.post('/choose-map', (req, res) => {
   }
 });
 
+// Move player
 app.patch('/move', (req, res) => {
   const direction = req.body.direction;
 
@@ -165,20 +190,20 @@ app.patch('/move', (req, res) => {
   res.send(`You moved ${direction}. ${nextRoomMessage}`);
 });
 
+// Start server
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
 
+// Connect to MongoDB
 async function run() {
   try {
     await client.connect();
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
-
-    // Create a unique index on the username field
-    await client.db("user").collection("userdetail").createIndex({ username: 1 }, { unique: true });
-  } catch (error) {
-    console.error("Error during startup:", error);
+  } finally {
+    // Ensures that the client will close when you finish/error
+    // await client.close();
   }
 }
 run().catch(console.dir);

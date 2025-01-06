@@ -281,37 +281,58 @@ app.post('/choose-map', verifyToken, (req, res) => {
     res.status(404).send(`Map "${selectedMapName}" not found.`);
   }
 });
-// Move - Authenticated route
-app.patch('/move', verifyToken, (req, res) => {
-  const direction = req.body.direction;
+// Route for user to move in a direction
+app.post('/move', (req, res) => {
+  const { direction } = req.body; // e.g., 'north', 'south', 'east', 'west'
 
-  // Check if the user has selected a map
+  // Check if the user has selected a map (i.e., their identity should have selectedMap)
   if (!req.identity.selectedMap) {
-    return res.status(400).send("No map selected. Please choose a map first.");
+    return res.status(400).send('You need to choose a map first.');
   }
 
-  // Load the map data
-  const mapJsonPath = path.join(__dirname, `${req.identity.selectedMap}.json`);
+  const selectedMapName = req.identity.selectedMap;
+  const mapJsonPath = path.join(__dirname, `${selectedMapName}.json`);
+
+  if (!mapJsonPathExists(mapJsonPath)) {
+    return res.status(404).send(`Map "${selectedMapName}" not found.`);
+  }
+
   const mapData = JSON.parse(fs.readFileSync(mapJsonPath, 'utf-8'));
 
-  // Get the player's current position
-  const currentRoom = mapData.map[req.identity.playerPosition];
+  let playerPosition = req.identity.playerPosition;
+  const validDirections = ['north', 'south', 'east', 'west'];
 
-  // Determine the next room based on the direction
-  const nextRoom = currentRoom[direction];
-  if (!nextRoom) {
-    return res.status(400).send(`Invalid direction: ${direction}.`);
+  // Check if the provided direction is valid
+  if (!validDirections.includes(direction)) {
+    return res.status(400).send('Invalid direction. Please choose "north", "south", "east", or "west".');
   }
 
-  // Update the player's position in the token (or database/session if needed)
-  req.identity.playerPosition = nextRoom;
+  // Move the player based on the direction
+  const newPlayerPosition = { ...playerPosition };
 
-  // Get the next room's message
-  const nextRoomMessage = mapData.map[nextRoom].message;
+  if (direction === 'north') {
+    newPlayerPosition.y -= 1;
+  } else if (direction === 'south') {
+    newPlayerPosition.y += 1;
+  } else if (direction === 'east') {
+    newPlayerPosition.x += 1;
+  } else if (direction === 'west') {
+    newPlayerPosition.x -= 1;
+  }
 
-  // Send the move response
-  res.send(`You moved ${direction}. ${nextRoomMessage}`);
+  // Check if the new position is valid within the map
+  if (newPlayerPosition.x < 0 || newPlayerPosition.y < 0 || 
+      newPlayerPosition.x >= mapData.map.width || newPlayerPosition.y >= mapData.map.height) {
+    return res.status(400).send('You cannot move outside the map.');
+  }
+
+  // Update player position
+  req.identity.playerPosition = newPlayerPosition;
+
+  // Return the new player position
+  res.send(`You moved ${direction}. Your new position is: x = ${newPlayerPosition.x}, y = ${newPlayerPosition.y}`);
 });
+
 
 // Start the server
 app.listen(port, () => {

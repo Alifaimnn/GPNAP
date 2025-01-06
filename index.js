@@ -252,6 +252,9 @@ app.post('/buy', async (req, res) => {
   var decoded = jwt.verify(token, 'hurufasepuluhkali');
   console.log(decoded);
 });
+const fs = require('fs');
+const path = require('path');
+
 // Choose map - Authenticated route
 app.post('/choose-map', verifyToken, (req, res) => {
   const selectedMapName = req.body.selectedMap;
@@ -265,30 +268,28 @@ app.post('/choose-map', verifyToken, (req, res) => {
     }
   }
 
-  const mapJsonPath = `./${selectedMapName}.json`;
+  const mapJsonPath = path.join(__dirname, `${selectedMapName}.json`);
 
   if (mapJsonPathExists(mapJsonPath)) {
-    const mapData = require(mapJsonPath);
-    selectedMap = selectedMapName; // Store the selected map globally
-    playerPosition = mapData.playerLoc; // Set initial player position
+    const mapData = JSON.parse(fs.readFileSync(mapJsonPath, 'utf-8'));
+    req.identity.selectedMap = selectedMapName; // Store the selected map in the JWT
+    req.identity.playerPosition = mapData.playerLoc; // Set initial player position
     const room1Message = mapData.map.room1.message;
 
-    res.send(`You chose ${selectedMapName}. Let's start playing!\n\nRoom 1 Message:\n${room1Message}`);
+    res.send(`You choose ${selectedMapName}. Let's start playing!\n\nRoom 1 Message:\n${room1Message}`);
   } else {
     res.status(404).send(`Map "${selectedMapName}" not found.`);
   }
 });
-
 // Move - Authenticated route
 app.patch('/move', verifyToken, (req, res) => {
   const direction = req.body.direction;
 
-  if (!selectedMap) {
-    res.status(400).send("No map selected.");
-    return;
+  if (!req.identity.selectedMap) {
+    return res.status(400).send("No map selected.");
   }
-
-  const mapData = require(`./${selectedMap}.json`);
+  const selectedMapName = req.identity.selectedMap;
+  const mapData = require(`./${selectedMapName}.json`);
   const currentRoom = mapData.map[playerPosition];
 
   const nextRoom = currentRoom[direction];
@@ -302,7 +303,6 @@ app.patch('/move', verifyToken, (req, res) => {
 
   res.send(`You moved ${direction}. ${nextRoomMessage}`);
 });
-
 // Start the server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);

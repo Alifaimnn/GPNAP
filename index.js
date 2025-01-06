@@ -285,12 +285,12 @@ app.post('/choose-map', verifyToken, (req, res) => {
 app.patch('/move', verifyToken, (req, res) => {
   const direction = req.body.direction;
 
-  if (!selectedMap) {
+  if (!selectedMapName) {
     res.status(400).send("No map selected.");
     return;
   }
 
-  const mapData = require(`./${selectedMap}.json`);
+  const mapData = require(`./${selectedMapName}.json`);
   const currentRoom = mapData.map[playerPosition];
 
   const nextRoom = currentRoom[direction];

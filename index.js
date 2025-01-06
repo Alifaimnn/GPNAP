@@ -252,76 +252,53 @@ app.post('/buy', async (req, res) => {
   var decoded = jwt.verify(token, 'hurufasepuluhkali');
   console.log(decoded);
 });
-const fs = require('fs');
-const path = require('path');
-
-app.post('/choose-map', verifyToken, async (req, res) => {
+// Choose map - Authenticated route
+app.post('/choose-map', verifyToken, (req, res) => {
   const selectedMapName = req.body.selectedMap;
 
-  if (!selectedMapName) {
-    return res.status(400).send("Map name is required.");
+  function mapJsonPathExists(mapPath) {
+    try {
+      fs.accessSync(mapPath, fs.constants.F_OK);
+      return true;
+    } catch (err) {
+      return false;
+    }
   }
 
-  // Check if the map file exists
-  const mapJsonPath = `./maps/${selectedMapName}.json`;
-  if (!fs.existsSync(mapJsonPath)) {
-    return res.status(404).send(`Map "${selectedMapName}" not found.`);
+  const mapJsonPath = `./${selectedMapName}.json`;
+
+  if (mapJsonPathExists(mapJsonPath)) {
+    const mapData = require(mapJsonPath);
+    selectedMap = selectedMapName; // Store the selected map globally
+    playerPosition = mapData.playerLoc; // Set initial player position
+    const room1Message = mapData.map.room1.message;
+
+    res.send(`You chose ${selectedMapName}. Let's start playing!\n\nRoom 1 Message:\n${room1Message}`);
+  } else {
+    res.status(404).send(`Map "${selectedMapName}" not found.`);
   }
-
-  const mapData = require(mapJsonPath);
-
-  // Save the selected map and initial position to the database for the authenticated user
-  await client.db("game").collection("userState").updateOne(
-    { userId: req.identity._id }, // Use the user ID from the decoded token
-    {
-      $set: {
-        selectedMap: selectedMapName,
-        playerPosition: mapData.playerLoc, // Set the starting position from the map JSON
-      },
-    },
-    { upsert: true } // Insert a new record if it doesn't exist
-  );
-
-  const room1Message = mapData.map[mapData.playerLoc].message;
-
-  res.send(`You chose ${selectedMapName}. Let's start playing!\n\nRoom 1 Message:\n${room1Message}`);
 });
 
-app.patch('/move', verifyToken, async (req, res) => {
+// Move - Authenticated route
+app.patch('/move', verifyToken, (req, res) => {
   const direction = req.body.direction;
 
-  if (!direction) {
-    return res.status(400).send("Direction is required.");
+  if (!selectedMap) {
+    res.status(400).send("No map selected.");
+    return;
   }
 
-  // Retrieve user-specific game state from the database
-  const userState = await client.db("game").collection("userState").findOne({
-    userId: req.identity._id,
-  });
-
-  if (!userState || !userState.selectedMap) {
-    return res.status(400).send("No map selected. Please choose a map first.");
-  }
-
-  const mapData = require(`./maps/${userState.selectedMap}.json`);
-  const currentRoom = mapData.map[userState.playerPosition];
-
-  if (!currentRoom) {
-    return res.status(400).send("Current room data is invalid.");
-  }
+  const mapData = require(`./${selectedMap}.json`);
+  const currentRoom = mapData.map[playerPosition];
 
   const nextRoom = currentRoom[direction];
   if (!nextRoom) {
-    return res.status(400).send(`Invalid direction: ${direction}`);
+    res.status(400).send(`Invalid direction: ${direction}`);
+    return;
   }
 
   const nextRoomMessage = mapData.map[nextRoom].message;
-
-  // Update player's position in the database
-  await client.db("game").collection("userState").updateOne(
-    { userId: req.identity._id },
-    { $set: { playerPosition: nextRoom } }
-  );
+  playerPosition = nextRoom;
 
   res.send(`You moved ${direction}. ${nextRoomMessage}`);
 });

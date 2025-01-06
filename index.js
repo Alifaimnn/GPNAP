@@ -284,7 +284,7 @@ app.post('/choose-map', verifyToken, (req, res) => {
 // Move - Authenticated route
 app.patch('/move', verifyToken, (req, res) => {
   const direction = req.body.direction;
-
+  const selectedMapName = req.body.selectedMap;
   if (!selectedMapName) {
     res.status(400).send("No map selected.");
     return;

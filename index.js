@@ -253,10 +253,6 @@ app.post('/buy', async (req, res) => {
 });
 const fs = require('fs');
 const path = require('path');
-// Helper function to generate a new JWT with updated user data
-function generateToken(identity) {
-  return jwt.sign(identity, 'hurufasepuluhkali', { expiresIn: '1h' });
-}
 
 // Choose map - Authenticated route
 app.post('/choose-map', verifyToken, (req, res) => {
@@ -278,20 +274,15 @@ app.post('/choose-map', verifyToken, (req, res) => {
     req.identity.selectedMap = selectedMapName; // Store the selected map in the JWT
     req.identity.playerPosition = mapData.playerLoc; // Set initial player position
 
-    // Re-issue the JWT token with updated identity information (selectedMap and playerPosition)
-    const token = generateToken(req.identity);
-
-    const room1Message = mapData.map.room1.message;
-    res.json({
+    // Do not generate a new token. Just send back the updated state.
+    res.send({
       message: `You chose ${selectedMapName}. Let's start playing!`,
-      room1Message,
-      token, // Send back the updated token with the map and player position
+      room1Message: mapData.map.room1.message, // Assuming you want to show room1's message
     });
   } else {
     res.status(404).send(`Map "${selectedMapName}" not found.`);
   }
 });
-
 // Move - Authenticated route
 app.patch('/move', verifyToken, (req, res) => {
   const direction = req.body.direction;
@@ -322,14 +313,11 @@ app.patch('/move', verifyToken, (req, res) => {
     }
 
     const nextRoomMessage = mapData.map[nextRoom].message;
-    req.identity.playerPosition = nextRoom; // Update player position
+    req.identity.playerPosition = nextRoom; // Update player position in the JWT
 
-    // Re-issue the JWT token with updated player position
-    const token = generateToken(req.identity);
-
-    res.json({
+    // Don't regenerate the token. Use the same token.
+    res.send({
       message: `You moved ${direction}. ${nextRoomMessage}`,
-      token, // Send the updated token back to the client
     });
   } catch (error) {
     res.status(500).send('Error reading or parsing the map file.');

@@ -259,12 +259,6 @@ const path = require('path');
 app.post('/choose-map', verifyToken, (req, res) => {
   const selectedMapName = req.body.selectedMap;
 
-  // Ensure req.identity exists
-  if (!req.identity) {
-    req.identity = {}; // Initialize identity if not set
-  }
-
-  
   function mapJsonPathExists(mapPath) {
     try {
       fs.accessSync(mapPath, fs.constants.F_OK);
@@ -287,59 +281,28 @@ app.post('/choose-map', verifyToken, (req, res) => {
     res.status(404).send(`Map "${selectedMapName}" not found.`);
   }
 });
-// Route for user to move in a direction
-app.patch('/move', (req, res) => {
-  const { direction } = req.body; // e.g., 'north', 'south', 'east', 'west'
+// Move - Authenticated route
+app.patch('/move', verifyToken, (req, res) => {
+  const direction = req.body.direction;
 
-  // Check if the user has selected a map (i.e., their identity should have selectedMap)
   if (!req.identity.selectedMap) {
-    return res.status(400).send('You need to choose a map first.');
+    return res.status(400).send("No map selected.");
   }
-
   const selectedMapName = req.identity.selectedMap;
-  const mapJsonPath = path.join(__dirname, `${selectedMapName}.json`);
+  const mapData = require(`./${selectedMapName}.json`);
+  const currentRoom = mapData.map[playerPosition];
 
-  if (!mapJsonPathExists(mapJsonPath)) {
-    return res.status(404).send(`Map "${selectedMapName}" not found.`);
+  const nextRoom = currentRoom[direction];
+  if (!nextRoom) {
+    res.status(400).send(`Invalid direction: ${direction}`);
+    return;
   }
 
-  const mapData = JSON.parse(fs.readFileSync(mapJsonPath, 'utf-8'));
+  const nextRoomMessage = mapData.map[nextRoom].message;
+  playerPosition = nextRoom;
 
-  let playerPosition = req.identity.playerPosition;
-  const validDirections = ['north', 'south', 'east', 'west'];
-
-  // Check if the provided direction is valid
-  if (!validDirections.includes(direction)) {
-    return res.status(400).send('Invalid direction. Please choose "north", "south", "east", or "west".');
-  }
-
-  // Move the player based on the direction
-  const newPlayerPosition = { ...playerPosition };
-
-  if (direction === 'north') {
-    newPlayerPosition.y -= 1;
-  } else if (direction === 'south') {
-    newPlayerPosition.y += 1;
-  } else if (direction === 'east') {
-    newPlayerPosition.x += 1;
-  } else if (direction === 'west') {
-    newPlayerPosition.x -= 1;
-  }
-
-  // Check if the new position is valid within the map
-  if (newPlayerPosition.x < 0 || newPlayerPosition.y < 0 || 
-      newPlayerPosition.x >= mapData.map.width || newPlayerPosition.y >= mapData.map.height) {
-    return res.status(400).send('You cannot move outside the map.');
-  }
-
-  // Update player position
-  req.identity.playerPosition = newPlayerPosition;
-
-  // Return the new player position
-  res.send(`You moved ${direction}. Your new position is: x = ${newPlayerPosition.x}, y = ${newPlayerPosition.y}`);
+  res.send(`You moved ${direction}. ${nextRoomMessage}`);
 });
-
-
 // Start the server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);

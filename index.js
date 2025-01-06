@@ -276,31 +276,48 @@ app.post('/choose-map', verifyToken, (req, res) => {
   }
 });
 
-
-
 // Move - Authenticated route
 app.patch('/move', verifyToken, (req, res) => {
   const direction = req.body.direction;
 
-  if (!selectedMap) {
+  if (!req.identity.selectedMap) {
     res.status(400).send("No map selected.");
     return;
   }
 
-  const mapData = require(`./${selectedMap}.json`);
-  const currentRoom = mapData.map[playerPosition];
+  const selectedMapName = req.identity.selectedMap;
+  const mapJsonPath = path.join(__dirname, `${selectedMapName}.json`);
 
-  const nextRoom = currentRoom[direction];
-  if (!nextRoom) {
-    res.status(400).send(`Invalid direction: ${direction}`);
+  if (!fs.existsSync(mapJsonPath)) {
+    res.status(404).send(`Map "${selectedMapName}" not found.`);
     return;
   }
 
-  const nextRoomMessage = mapData.map[nextRoom].message;
-  playerPosition = nextRoom;
+  try {
+    const mapData = JSON.parse(fs.readFileSync(mapJsonPath, 'utf-8'));
+    const playerPosition = req.identity.playerPosition;
+    const currentRoom = mapData.map[playerPosition];
 
-  res.send(`You moved ${direction}. ${nextRoomMessage}`);
+    if (!currentRoom) {
+      res.status(400).send("Invalid player position.");
+      return;
+    }
+
+    const nextRoom = currentRoom[direction];
+    if (!nextRoom) {
+      res.status(400).send(`Invalid direction: ${direction}`);
+      return;
+    }
+
+    const nextRoomMessage = mapData.map[nextRoom].message;
+    req.identity.playerPosition = nextRoom; // Update player position
+
+    res.send(`You moved ${direction}. ${nextRoomMessage}`);
+  } catch (error) {
+    res.status(500).send('Error reading or parsing the map file.');
+  }
 });
+
 
 // Start the server
 app.listen(port, () => {

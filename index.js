@@ -271,7 +271,7 @@ app.post('/choose-map', verifyToken, (req, res) => {
   const mapJsonPath = `./${selectedMapName}.json`;
   if (mapJsonPathExists(mapJsonPath)) {
     const mapData = JSON.parse(fs.readFileSync(mapJsonPath, 'utf-8'));
-    selectedMap = selectedMapName // Store the selected map in the JWT
+    req.identity.selectedMap = selectedMapName; // Store the selected map in the JWT
     req.identity.playerPosition = mapData.playerLoc; // Set initial player position
     const room1Message = mapData.map.room1.message;
 
@@ -287,18 +287,16 @@ app.patch('/move', verifyToken, (req, res) => {
   if (!req.identity.selectedMap) {
     return res.status(400).send("No map selected.");
   }
-  const selectedMapName = req.identity.selectedMap;
-  const mapData = require(`./${selectedMapName}.json`);
-  const currentRoom = mapData.map[playerPosition];
+  const mapData = require(`./${req.identity.selectedMap}.json`);
+  const currentRoom = mapData.map[req.identity.playerPosition];
 
   const nextRoom = currentRoom[direction];
   if (!nextRoom) {
-    res.status(400).send(`Invalid direction: ${direction}`);
-    return;
+    return res.status(400).send(`Invalid direction: ${direction}`);
   }
 
   const nextRoomMessage = mapData.map[nextRoom].message;
-  playerPosition = nextRoom;
+  req.identity.playerPosition = nextRoom;
 
   res.send(`You moved ${direction}. ${nextRoomMessage}`);
 });

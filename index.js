@@ -120,7 +120,7 @@ app.post('/admin/login', async (req, res) => {
     const admin = await client.db("user").collection("admin").findOne({ username });
 
     if (!admin) {
-      return res.status(401).send("Admin username not found");
+      return res.status(401).send("-");
     }
 
     const isPasswordValid = bcrypt.compareSync(password, admin.password);

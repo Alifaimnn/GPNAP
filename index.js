@@ -272,7 +272,7 @@ app.post('/choose-map', verifyToken, (req, res) => {
 
   if (mapJsonPathExists(mapJsonPath)) {
     const mapData = JSON.parse(fs.readFileSync(mapJsonPath, 'utf-8'));
-    req.identity.selectedMap = selectedMapName; // Store the selected map in the JWT
+    selectedMap = selectedMapName // Store the selected map in the JWT
     req.identity.playerPosition = mapData.playerLoc; // Set initial player position
     const room1Message = mapData.map.room1.message;
 

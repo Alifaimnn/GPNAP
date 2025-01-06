@@ -214,7 +214,7 @@ app.post('/login', async (req, res) => {
     const user = await client.db("user").collection("userdetail").findOne({ username });
 
     if (!user) {
-      return res.status(401).send("Username not found");
+      return res.status(401).send("-");
     }
 
     const isPasswordValid = bcrypt.compareSync(password, user.password);

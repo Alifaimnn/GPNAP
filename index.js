@@ -284,24 +284,32 @@ app.post('/choose-map', verifyToken, (req, res) => {
 // Move - Authenticated route
 app.patch('/move', verifyToken, (req, res) => {
   const direction = req.body.direction;
-  const selectedMapName = req.body.selectedMap;
-  if (!selectedMapName) {
-    res.status(400).send("No map selected.");
-    return;
+
+  // Check if the user has selected a map
+  if (!req.identity.selectedMap) {
+    return res.status(400).send("No map selected. Please choose a map first.");
   }
 
-  const mapData = require(`./${selectedMapName}.json`);
-  const currentRoom = mapData.map[playerPosition];
+  // Load the map data
+  const mapJsonPath = path.join(__dirname, `${req.identity.selectedMap}.json`);
+  const mapData = JSON.parse(fs.readFileSync(mapJsonPath, 'utf-8'));
 
+  // Get the player's current position
+  const currentRoom = mapData.map[req.identity.playerPosition];
+
+  // Determine the next room based on the direction
   const nextRoom = currentRoom[direction];
   if (!nextRoom) {
-    res.status(400).send(`Invalid direction: ${direction}`);
-    return;
+    return res.status(400).send(`Invalid direction: ${direction}.`);
   }
 
-  const nextRoomMessage = mapData.map[nextRoom].message;
-  playerPosition = nextRoom;
+  // Update the player's position in the token (or database/session if needed)
+  req.identity.playerPosition = nextRoom;
 
+  // Get the next room's message
+  const nextRoomMessage = mapData.map[nextRoom].message;
+
+  // Send the move response
   res.send(`You moved ${direction}. ${nextRoomMessage}`);
 });
 

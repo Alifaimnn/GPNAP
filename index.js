@@ -273,10 +273,9 @@ app.post('/choose-map', verifyToken, (req, res) => {
     const mapData = JSON.parse(fs.readFileSync(mapJsonPath, 'utf-8'));
     req.identity.selectedMap = selectedMapName; // Store the selected map in the JWT
     req.identity.playerPosition = mapData.playerLoc; // Set initial player position
+    const room1Message = mapData.map.room1.message;
 
-    // Do not generate a new token. Just send back the updated state.
-    res.send(`You choose ${selectedMapName}. Let's start playing!\n\nRoom 1 Message:\n${room1Message}`
-    );
+    res.send(`You choose ${selectedMapName}. Let's start playing!\n\nRoom 1 Message:\n${room1Message}`);
   } else {
     res.status(404).send(`Map "${selectedMapName}" not found.`);
   }

@@ -281,7 +281,7 @@ app.post('/choose-map', verifyToken, (req, res) => {
   }
 });
 // Move - Authenticated route
-app.patch('/move', verifyToken, (req, res) => {
+app.patch('/move', (req, res) => {
   const direction = req.body.direction;
 
   if (!req.identity.selectedMap) {

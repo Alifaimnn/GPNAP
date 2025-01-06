@@ -259,6 +259,12 @@ const path = require('path');
 app.post('/choose-map', verifyToken, (req, res) => {
   const selectedMapName = req.body.selectedMap;
 
+  // Ensure req.identity exists
+  if (!req.identity) {
+    req.identity = {}; // Initialize identity if not set
+  }
+
+  
   function mapJsonPathExists(mapPath) {
     try {
       fs.accessSync(mapPath, fs.constants.F_OK);

@@ -275,10 +275,8 @@ app.post('/choose-map', verifyToken, (req, res) => {
     req.identity.playerPosition = mapData.playerLoc; // Set initial player position
 
     // Do not generate a new token. Just send back the updated state.
-    res.send({
-      message: `You chose ${selectedMapName}. Let's start playing!`,
-      room1Message: mapData.map.room1.message, // Assuming you want to show room1's message
-    });
+    res.send(`You choose ${selectedMapName}. Let's start playing!\n\nRoom 1 Message:\n${room1Message}`
+    );
   } else {
     res.status(404).send(`Map "${selectedMapName}" not found.`);
   }

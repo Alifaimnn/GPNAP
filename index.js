@@ -253,24 +253,40 @@ app.post('/buy', async (req, res) => {
 });
 const fs = require('fs');
 const path = require('path');
+// Helper function to generate a new JWT with updated user data
+function generateToken(identity) {
+  return jwt.sign(identity, 'hurufasepuluhkali', { expiresIn: '1h' });
+}
 
 // Choose map - Authenticated route
 app.post('/choose-map', verifyToken, (req, res) => {
   const selectedMapName = req.body.selectedMap;
+
+  function mapJsonPathExists(mapPath) {
+    try {
+      fs.accessSync(mapPath, fs.constants.F_OK);
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
   const mapJsonPath = path.join(__dirname, `${selectedMapName}.json`);
 
-  // Check if the map file exists
-  if (fs.existsSync(mapJsonPath)) {
-    try {
-      const mapData = JSON.parse(fs.readFileSync(mapJsonPath, 'utf-8')); // Read and parse the JSON file
-      req.identity.selectedMap = selectedMapName;
-      req.identity.playerPosition = mapData.playerLoc;
+  if (mapJsonPathExists(mapJsonPath)) {
+    const mapData = JSON.parse(fs.readFileSync(mapJsonPath, 'utf-8'));
+    req.identity.selectedMap = selectedMapName; // Store the selected map in the JWT
+    req.identity.playerPosition = mapData.playerLoc; // Set initial player position
 
-      const room1Message = mapData.map.room1.message;
-      res.send(`You chose ${selectedMapName}. Let's start playing!\n\nRoom 1 Message:\n${room1Message}`);
-    } catch (error) {
-      res.status(500).send('Error reading the map file.');
-    }
+    // Re-issue the JWT token with updated identity information (selectedMap and playerPosition)
+    const token = generateToken(req.identity);
+
+    const room1Message = mapData.map.room1.message;
+    res.json({
+      message: `You chose ${selectedMapName}. Let's start playing!`,
+      room1Message,
+      token, // Send back the updated token with the map and player position
+    });
   } else {
     res.status(404).send(`Map "${selectedMapName}" not found.`);
   }
@@ -281,43 +297,44 @@ app.patch('/move', verifyToken, (req, res) => {
   const direction = req.body.direction;
 
   if (!req.identity.selectedMap) {
-    res.status(400).send("No map selected.");
-    return;
+    return res.status(400).send("No map selected.");
   }
 
   const selectedMapName = req.identity.selectedMap;
   const mapJsonPath = path.join(__dirname, `${selectedMapName}.json`);
 
   if (!fs.existsSync(mapJsonPath)) {
-    res.status(404).send(`Map "${selectedMapName}" not found.`);
-    return;
+    return res.status(404).send(`Map "${selectedMapName}" not found.`);
   }
 
   try {
-    const mapData = JSON.parse(fs.readFileSync(mapJsonPath, 'utf-8'));
+    const mapData = JSON.parse(fs.readFileSync(mapJsonPath, 'utf-8')); // Read and parse the map file
     const playerPosition = req.identity.playerPosition;
     const currentRoom = mapData.map[playerPosition];
 
     if (!currentRoom) {
-      res.status(400).send("Invalid player position.");
-      return;
+      return res.status(400).send("Invalid player position.");
     }
 
     const nextRoom = currentRoom[direction];
     if (!nextRoom) {
-      res.status(400).send(`Invalid direction: ${direction}`);
-      return;
+      return res.status(400).send(`Invalid direction: ${direction}`);
     }
 
     const nextRoomMessage = mapData.map[nextRoom].message;
     req.identity.playerPosition = nextRoom; // Update player position
 
-    res.send(`You moved ${direction}. ${nextRoomMessage}`);
+    // Re-issue the JWT token with updated player position
+    const token = generateToken(req.identity);
+
+    res.json({
+      message: `You moved ${direction}. ${nextRoomMessage}`,
+      token, // Send the updated token back to the client
+    });
   } catch (error) {
     res.status(500).send('Error reading or parsing the map file.');
   }
 });
-
 
 // Start the server
 app.listen(port, () => {

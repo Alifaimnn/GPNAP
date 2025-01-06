@@ -268,8 +268,7 @@ app.post('/choose-map', verifyToken, (req, res) => {
     }
   }
 
-  const mapJsonPath = path.join(__dirname, `${selectedMapName}.json`);
-
+  const mapJsonPath = `./${selectedMapName}.json`;
   if (mapJsonPathExists(mapJsonPath)) {
     const mapData = JSON.parse(fs.readFileSync(mapJsonPath, 'utf-8'));
     selectedMap = selectedMapName // Store the selected map in the JWT

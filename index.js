@@ -287,40 +287,21 @@ app.patch('/move', verifyToken, (req, res) => {
   if (!req.identity.selectedMap) {
     return res.status(400).send("No map selected.");
   }
-
   const selectedMapName = req.identity.selectedMap;
-  const mapJsonPath = path.join(__dirname, `${selectedMapName}.json`);
+  const mapData = require(`./${selectedMapName}.json`);
+  const currentRoom = mapData.map[playerPosition];
 
-  if (!fs.existsSync(mapJsonPath)) {
-    return res.status(404).send(`Map "${selectedMapName}" not found.`);
+  const nextRoom = currentRoom[direction];
+  if (!nextRoom) {
+    res.status(400).send(`Invalid direction: ${direction}`);
+    return;
   }
 
-  try {
-    const mapData = JSON.parse(fs.readFileSync(mapJsonPath, 'utf-8')); // Read and parse the map file
-    const playerPosition = req.identity.playerPosition;
-    const currentRoom = mapData.map[playerPosition];
+  const nextRoomMessage = mapData.map[nextRoom].message;
+  playerPosition = nextRoom;
 
-    if (!currentRoom) {
-      return res.status(400).send("Invalid player position.");
-    }
-
-    const nextRoom = currentRoom[direction];
-    if (!nextRoom) {
-      return res.status(400).send(`Invalid direction: ${direction}`);
-    }
-
-    const nextRoomMessage = mapData.map[nextRoom].message;
-    req.identity.playerPosition = nextRoom; // Update player position in the JWT
-
-    // Don't regenerate the token. Use the same token.
-    res.send({
-      message: `You moved ${direction}. ${nextRoomMessage}`,
-    });
-  } catch (error) {
-    res.status(500).send('Error reading or parsing the map file.');
-  }
+  res.send(`You moved ${direction}. ${nextRoomMessage}`);
 });
-
 // Start the server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);

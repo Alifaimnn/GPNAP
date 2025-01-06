@@ -248,36 +248,35 @@ app.get('/user/:id', verifyToken, async (req, res) => {
 
 app.post('/buy', async (req, res) => {
   const token = req.headers.authorization.split(" ")[1];
-  var decoded = jwt.verify(token, 'mysupersecretpasskey');
+  var decoded = jwt.verify(token, 'hurufasepuluhkali');
   console.log(decoded);
 });
+const fs = require('fs');
+const path = require('path');
 
 // Choose map - Authenticated route
 app.post('/choose-map', verifyToken, (req, res) => {
   const selectedMapName = req.body.selectedMap;
+  const mapJsonPath = path.join(__dirname, `${selectedMapName}.json`);
 
-  function mapJsonPathExists(mapPath) {
+  // Check if the map file exists
+  if (fs.existsSync(mapJsonPath)) {
     try {
-      fs.accessSync(mapPath, fs.constants.F_OK);
-      return true;
-    } catch (err) {
-      return false;
+      const mapData = JSON.parse(fs.readFileSync(mapJsonPath, 'utf-8')); // Read and parse the JSON file
+      req.identity.selectedMap = selectedMapName;
+      req.identity.playerPosition = mapData.playerLoc;
+
+      const room1Message = mapData.map.room1.message;
+      res.send(`You chose ${selectedMapName}. Let's start playing!\n\nRoom 1 Message:\n${room1Message}`);
+    } catch (error) {
+      res.status(500).send('Error reading the map file.');
     }
-  }
-
-  const mapJsonPath = `./${selectedMapName}.json`;
-
-  if (mapJsonPathExists(mapJsonPath)) {
-    const mapData = require(mapJsonPath);
-    selectedMap = selectedMapName; // Store the selected map globally
-    playerPosition = mapData.playerLoc; // Set initial player position
-    const room1Message = mapData.map.room1.message;
-
-    res.send(`You chose ${selectedMapName}. Let's start playing!\n\nRoom 1 Message:\n${room1Message}`);
   } else {
     res.status(404).send(`Map "${selectedMapName}" not found.`);
   }
 });
+
+
 
 // Move - Authenticated route
 app.patch('/move', verifyToken, (req, res) => {

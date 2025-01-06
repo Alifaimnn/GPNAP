@@ -282,7 +282,7 @@ app.post('/choose-map', verifyToken, (req, res) => {
   }
 });
 // Route for user to move in a direction
-app.post('/move', (req, res) => {
+app.patch('/move', (req, res) => {
   const { direction } = req.body; // e.g., 'north', 'south', 'east', 'west'
 
   // Check if the user has selected a map (i.e., their identity should have selectedMap)

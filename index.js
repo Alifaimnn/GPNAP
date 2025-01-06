@@ -233,6 +233,20 @@ app.post('/login', async (req, res) => {
   }
 });
 
+
+// Get user profile
+app.get('/user/:id', verifyToken, async (req, res) => {
+  if (req.identity._id != req.params.id) {
+    res.status(401).send('Unauthorized Access');
+  } else {
+    let result = await client.db("user").collection("userdetail").findOne({
+      _id: new ObjectId(req.params.id)
+    });
+    res.send(result);
+  }
+});
+
+
 // Start the server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);

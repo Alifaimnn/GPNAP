@@ -5,9 +5,23 @@ const port = process.env.PORT || 4000;
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const rateLimit = require('express-rate-limit');
+
 
 // Middleware to parse JSON in request body
 app.use(express.json());
+
+// Set up global rate limiter (100 requests per 15 minutes)
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+// Apply the global rate limiter to all routes
+app.use(globalLimiter);
 
 const uri = "mongodb+srv://alifaimn903:nap12345@clusternap.k8wm8.mongodb.net/?retryWrites=true&w=majority&appName=ClusterNAP";
 
@@ -54,6 +68,12 @@ app.post('/initialize-admin', async (req, res) => {
     return res.status(400).send("Password must be at least 8 characters long.");
   }
 
+  // Additional password checks
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  if (!passwordRegex.test(password)) {
+    return res.status(400).send("Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character.");
+  }
+
   try {
     // Check if any admin already exists
     const existingAdmin = await client.db("user").collection("admin").findOne({});
@@ -87,6 +107,11 @@ app.post('/admin/register', verifyToken, verifyAdmin, async (req, res) => {
 
   if (password.length < 8) {
     return res.status(400).send("Password must be at least 8 characters long.");
+  }
+  // Additional password checks
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  if (!passwordRegex.test(password)) {
+    return res.status(400).send("Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character.");
   }
 
   try {
@@ -178,8 +203,15 @@ app.post('/user', async (req, res) => {
     return res.status(400).send("All fields are required");
   }
 
+  // Check for minimum password length
   if (password.length < 8) {
     return res.status(400).send("Password must be at least 8 characters long.");
+  }
+
+  // Additional password checks using regex
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  if (!passwordRegex.test(password)) {
+    return res.status(400).send("Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character.");
   }
 
   try {
@@ -202,6 +234,7 @@ app.post('/user', async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+
 
 // User login
 app.post('/login', async (req, res) => {

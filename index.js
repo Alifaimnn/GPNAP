@@ -272,7 +272,7 @@ app.post('/choose-map', verifyToken, (req, res) => {
   const mapJsonPath = `./${selectedMapName}.json`;
   if (mapJsonPathExists(mapJsonPath)) {
     const mapData = JSON.parse(fs.readFileSync(mapJsonPath, 'utf-8'));
-    req.body.selectedMap = selectedMapName; // Store the selected map in the JWT
+    req.identity.selectedMap = selectedMapName; // Store the selected map in the JWT
     req.identity.playerPosition = mapData.playerLoc; // Set initial player position
     const room1Message = mapData.map.room1.message;
 
@@ -285,10 +285,10 @@ app.post('/choose-map', verifyToken, (req, res) => {
 app.patch('/move', verifyToken, (req, res) => {
   const direction = req.body.direction;
 
-  if (!req.body.selectedMap) {
+  if (!req.identity.selectedMap) {
     return res.status(400).send("No map selected.");
   }
-  const mapData = require(`./${req.body.selectedMap}.json`);
+  const mapData = require(`./${req.identity.selectedMap}.json`);
   const currentRoom = mapData.map[req.identity.playerPosition];
 
   const nextRoom = currentRoom[direction];

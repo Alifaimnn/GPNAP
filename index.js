@@ -23,14 +23,11 @@ const globalLimiter = rateLimit({
 // Apply the global rate limiter to all routes
 app.use(globalLimiter);
 
-const uri = "mongodb+srv://alifaimn903:nap12345@clusternap.k8wm8.mongodb.net/?retryWrites=true&w=majority&appName=ClusterNAP";
-
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  }
+const { MongoClient, ServerApiVersion } = require('mongodb');
+const credentials = 'X509-cert-412525666024987414.pem'
+const client = new MongoClient('mongodb+srv://clusternap.k8wm8.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority&appName=ClusterNAP', {
+  tlsCertificateKeyFile: credentials,
+  serverApi: ServerApiVersion.v1
 });
 
 // Function to verify JWT token

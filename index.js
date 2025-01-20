@@ -23,8 +23,8 @@ const globalLimiter = rateLimit({
 // Apply the global rate limiter to all routes
 app.use(globalLimiter);
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
-const credentials = 'X509-cert-412525666024987414.pem'
+// const { MongoClient, ServerApiVersion } = require('mongodb');
+const credentials = 'X509-cert-6302666586419299028.pem'
 const client = new MongoClient('mongodb+srv://clusternap.k8wm8.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority&appName=ClusterNAP', {
   tlsCertificateKeyFile: credentials,
   serverApi: ServerApiVersion.v1
@@ -151,12 +151,24 @@ app.post('/admin/login', async (req, res) => {
       return res.status(401).send("Wrong password! Try again");
     }
 
+    // Set token expiration (e.g., 1 hour)
+    const expiresIn = '1h';
     const token = jwt.sign(
       { _id: admin._id, username: admin.username, role: "admin" },
-      'hurufasepuluhkali'
+      'hurufasepuluhkali',
+
+      { expiresIn } // Expiration time
+
     );
 
-    res.send({ _id: admin._id, token, role: "admin" });
+     const expirationTime = new Date(Date.now() + 24 * 60 * 60 * 1000); // Current time + 1 hour
+
+    res.send({
+      _id: admin._id,
+      token,
+      role: "admin",
+      expiresAt: expirationTime.toISOString(), // Include expiration date
+    });
   } catch (error) {
     console.error("Error during admin login:", error);
     res.status(500).send("Internal Server Error");
@@ -252,13 +264,23 @@ app.post('/login', async (req, res) => {
     if (!isPasswordValid) {
       return res.status(401).send("Wrong password! Try again");
     }
-
+    // Set token expiration
+    const expiresIn = '1h';
     const token = jwt.sign(
       { _id: user._id, username: user.username, name: user.name, role: "user" },
-      'hurufasepuluhkali'
+      'hurufasepuluhkali',
+      { expiresIn } // Expiration time
+
     );
 
-    res.send({ _id: user._id, token, role: "user" });
+    const expirationTime = new Date(Date.now() + 24 * 60 * 60 * 1000); // Current time + 1 hour
+
+    res.send({
+      _id: user._id,
+      token,
+      role: "user",
+      expiresAt: expirationTime.toISOString(), // Include expiration date
+    });
   } catch (error) {
     console.error("Error during user login:", error);
     res.status(500).send("Internal Server Error");
